@@ -69,16 +69,9 @@ client.on('messageCreate', async message => {
     }
 });
 
-// ボットの起動時処理
-client.once('ready', () => {
-    console.log(`Logged in as ${client.user.tag}`);
-    client.user.setActivity('クラブマッチ通知', { type: 'WATCHING' });
-});
-
-// ポート設定を追加（これを client.login の前に追加）
+// ポート設定を追加
 const port = process.env.PORT || 3000;
-const express = require('express');
-const app = express();
+const app = express();  // すでに宣言されているexpressを使用
 app.get('/', (req, res) => {
   res.send('Bot is running!');
 });
