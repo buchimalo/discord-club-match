@@ -11,7 +11,7 @@ const client = new Client({
 
 // 環境変数から設定を読み込み
 const CHANNEL_ID = process.env.DISCORD_CHANNEL_ID || 'YOUR_CHANNEL_ID';
-const REMINDER_MESSAGE = 'クラブマッチクビマッチンコマッチはじまるよー！';
+const REMINDER_MESSAGE = 'クラブマッチクビマッチクラブマッチクビマッチリマインドマッチンコマッチクラブマッチクビマッチ';
 
 // 火曜日・木曜日・土曜日の11時に実行
 cron.schedule('0 11 * * 2,4,6', async () => {
@@ -72,6 +72,17 @@ client.on('messageCreate', async message => {
 client.once('ready', () => {
     console.log(`Logged in as ${client.user.tag}`);
     client.user.setActivity('クラブマッチ通知', { type: 'WATCHING' });
+});
+
+// ポート設定を追加（これを client.login の前に追加）
+const port = process.env.PORT || 3000;
+const express = require('express');
+const app = express();
+app.get('/', (req, res) => {
+  res.send('Bot is running!');
+});
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
 });
 
 // ボットのログイン
