@@ -1,6 +1,6 @@
-const express = require('express');
 const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
 const cron = require('node-cron');
+const express = require('express');
 
 const client = new Client({
     intents: [
