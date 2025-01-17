@@ -2,6 +2,11 @@ const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
 const cron = require('node-cron');
 const express = require('express');
 
+// タイムゾーンの設定
+const cronOptions = {
+  timezone: "Asia/Tokyo"
+};
+
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -31,7 +36,7 @@ cron.schedule('0 11 * * 2,4,6', async () => {
     } catch (error) {
         console.error('Error sending reminder:', error);
     }
-});
+}, cronOptions);  // ここにcronOptionsを追加
 
 // 火曜日・木曜日・土曜日の21時に実行
 cron.schedule('0 21 * * 2,4,6', async () => {
@@ -50,7 +55,7 @@ cron.schedule('0 21 * * 2,4,6', async () => {
     } catch (error) {
         console.error('Error sending reminder:', error);
     }
-});
+}, cronOptions);  // ここにcronOptionsを追加
 
 // ボットのステータス確認用コマンド
 client.on('messageCreate', async message => {
