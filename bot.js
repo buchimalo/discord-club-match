@@ -43,7 +43,7 @@ cron.schedule('0 11 * * 2,4,6', async () => {
         if (channel) {
             const embed = new EmbedBuilder()
                 .setColor('#FF0000')
-                .setTitle('⚔️ クラブマッチ通知 - 11:00')
+                .setTitle('♠️♥️ クラブマッチ通知 - 11:00')
                 .setDescription(REMINDER_MESSAGE)
                 .setTimestamp();
             await channel.send({ embeds: [embed] });
@@ -61,7 +61,7 @@ cron.schedule('0 21 * * 2,4,6', async () => {
         if (channel) {
             const embed = new EmbedBuilder()
                 .setColor('#FF0000')
-                .setTitle('⚔️ クラブマッチ通知 - 21:00')
+                .setTitle('♠️♥️ クラブマッチ通知 - 21:00')
                 .setDescription(REMINDER_MESSAGE)
                 .setTimestamp();
             await channel.send({ embeds: [embed] });
