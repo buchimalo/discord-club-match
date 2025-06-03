@@ -18,7 +18,7 @@ const client = new Client({
 
 // 環境変数から設定を読み込み
 const CHANNEL_ID = process.env.DISCORD_CHANNEL_ID || 'YOUR_CHANNEL_ID';
-const REMINDER_MESSAGE = '今日はクラブマッチの日です。忘れないためのリマインドです。ちゃんとボットさんの声を聞きましょう。リピートアフター三―！クラブマッチクビマッチンコマッチ';
+const REMINDER_MESSAGE = '今日はクラブマッチの日です。忘れないためのリマインドです。ちゃんとボットさんの声を聞きましょう。repeat after me! クラブマッチクビマッチンコマッチ';
 const APP_URL = process.env.RENDER_EXTERNAL_URL;
 
 // 10分ごとに自分自身にpingを送信
