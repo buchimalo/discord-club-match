@@ -18,27 +18,79 @@ const client = new Client({
 
 // 環境変数から設定を読み込み
 const CHANNEL_ID = process.env.DISCORD_CHANNEL_ID || 'YOUR_CHANNEL_ID';
-const REMINDER_MESSAGE = '今日はクラブマッチの日です。忘れないためのリマインドです。通知をオンにしてボットさんの声を聞きましょう。repeat after me! クラブマッチクビマッチンコマッチ';
+const REMINDER_MESSAGE = '今日はクラブマッチの日です。忘れないためのリマインドです。通知をオンにしてボットさんの声を聞きましょう。repeat after me! 囲碁と将棋はちがうぞ！欧米しばくぞ！クラブマッチですよ！';
 const APP_URL = process.env.RENDER_EXTERNAL_URL;
+const TOKEN = process.env.DISCORD_BOT_TOKEN || 'YOUR_BOT_TOKEN';
 
-// 10分ごとに自分自身にpingを送信
+// Discord接続状況を監視
+let isDiscordReady = false;
+let lastDiscordActivity = new Date();
+
+// Discord接続イベント
+client.on('ready', () => {
+    console.log(`✅ Bot logged in as ${client.user.tag}`);
+    console.log(`✅ Connected to Discord at ${new Date().toISOString()}`);
+    console.log(`✅ Bot is ready and serving ${client.guilds.cache.size} guilds`);
+    isDiscordReady = true;
+    lastDiscordActivity = new Date();
+});
+
+client.on('error', (error) => {
+    console.error('❌ Discord client error:', error);
+    isDiscordReady = false;
+});
+
+client.on('warn', (warning) => {
+    console.warn('⚠️ Discord warning:', warning);
+});
+
+client.on('disconnect', () => {
+    console.log('🔌 Discord disconnected');
+    isDiscordReady = false;
+});
+
+client.on('reconnecting', () => {
+    console.log('🔄 Discord reconnecting...');
+    isDiscordReady = false;
+});
+
+// 10分ごとに自分自身にpingを送信 + Discord状況チェック
 function keepAlive() {
     if (APP_URL) {
         setInterval(() => {
+            // HTTP Pingチェック
             https.get(APP_URL, (resp) => {
                 if (resp.statusCode === 200) {
                     console.log('Ping successful');
+                } else {
+                    console.log(`Ping returned status: ${resp.statusCode}`);
                 }
             }).on('error', (err) => {
-                console.log('Ping failed:', err);
+                console.log('❌ Ping failed:', err.message);
             });
+
+            // Discord接続状況チェック
+            console.log(`📊 Discord Status: ${isDiscordReady ? 'Connected' : 'Disconnected'}`);
+            console.log(`📊 Last Activity: ${lastDiscordActivity.toISOString()}`);
+            
+            // 長時間非アクティブの場合は警告
+            const timeSinceActivity = new Date() - lastDiscordActivity;
+            if (timeSinceActivity > 30 * 60 * 1000) { // 30分
+                console.warn('⚠️ Discord has been inactive for more than 30 minutes');
+            }
         }, 5 * 60 * 1000); // 5分ごと
     }
 }
 
 // 火曜日・木曜日・土曜日の11時に実行
 cron.schedule('0 11 * * 2,4,6', async () => {
+    console.log('🔔 Attempting to send 11:00 reminder...');
     try {
+        if (!isDiscordReady) {
+            console.error('❌ Discord not ready, skipping 11:00 reminder');
+            return;
+        }
+        
         const channel = await client.channels.fetch(CHANNEL_ID);
         if (channel) {
             const embed = new EmbedBuilder()
@@ -46,17 +98,27 @@ cron.schedule('0 11 * * 2,4,6', async () => {
                 .setTitle('♠️♥️ クラブマッチ通知 - 11:00')
                 .setDescription(REMINDER_MESSAGE)
                 .setTimestamp();
+            
             await channel.send({ embeds: [embed] });
-            console.log('11:00の通知を送信しました');
+            console.log('✅ 11:00の通知を送信しました');
+            lastDiscordActivity = new Date();
+        } else {
+            console.error('❌ Channel not found for 11:00 reminder');
         }
     } catch (error) {
-        console.error('Error sending reminder:', error);
+        console.error('❌ Error sending 11:00 reminder:', error);
     }
 }, cronOptions);
 
 // 火曜日・木曜日・土曜日の21時に実行
 cron.schedule('0 21 * * 2,4,6', async () => {
+    console.log('🔔 Attempting to send 21:00 reminder...');
     try {
+        if (!isDiscordReady) {
+            console.error('❌ Discord not ready, skipping 21:00 reminder');
+            return;
+        }
+        
         const channel = await client.channels.fetch(CHANNEL_ID);
         if (channel) {
             const embed = new EmbedBuilder()
@@ -64,41 +126,98 @@ cron.schedule('0 21 * * 2,4,6', async () => {
                 .setTitle('♠️♥️ クラブマッチ通知 - 21:00')
                 .setDescription(REMINDER_MESSAGE)
                 .setTimestamp();
+            
             await channel.send({ embeds: [embed] });
-            console.log('21:00の通知を送信しました');
+            console.log('✅ 21:00の通知を送信しました');
+            lastDiscordActivity = new Date();
+        } else {
+            console.error('❌ Channel not found for 21:00 reminder');
         }
     } catch (error) {
-        console.error('Error sending reminder:', error);
+        console.error('❌ Error sending 21:00 reminder:', error);
     }
 }, cronOptions);
 
 // ボットのステータス確認用コマンド
 client.on('messageCreate', async message => {
+    lastDiscordActivity = new Date(); // メッセージ受信時にアクティビティ更新
+    
     if (message.content === '!status') {
+        const uptime = process.uptime();
+        const uptimeFormatted = `${Math.floor(uptime / 3600)}h ${Math.floor((uptime % 3600) / 60)}m`;
+        
         const embed = new EmbedBuilder()
             .setColor('#00FF00')
             .setTitle('🤖 リマインドボットの状態')
             .setDescription('正常に動作しています')
             .addFields(
                 { name: '設定された時間', value: '火・木・土 11:00, 21:00' },
+                { name: 'Discord接続状況', value: isDiscordReady ? '✅ 接続中' : '❌ 切断中' },
+                { name: '稼働時間', value: uptimeFormatted },
+                { name: '最後のアクティビティ', value: lastDiscordActivity.toISOString() },
                 { name: 'リマインドメッセージ', value: REMINDER_MESSAGE }
             )
             .setTimestamp();
-        message.reply({ embeds: [embed] });
+        
+        try {
+            await message.reply({ embeds: [embed] });
+            console.log('📊 Status command executed successfully');
+        } catch (error) {
+            console.error('❌ Error replying to status command:', error);
+        }
     }
 });
 
-// ポート設定を追加
-const port = process.env.PORT || 3000;
+// Express設定
+const port = process.env.PORT || 10000;
 const app = express();
+
 app.get('/', (req, res) => {
-  res.send('Bot is running!');
-});
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
-  keepAlive(); // サーバー起動後にkeepAlive関数を実行
+    const statusInfo = {
+        status: 'running',
+        discordReady: isDiscordReady,
+        uptime: process.uptime(),
+        lastActivity: lastDiscordActivity,
+        timestamp: new Date().toISOString()
+    };
+    
+    res.json(statusInfo);
+    console.log('📊 Health check requested');
 });
 
-// ボットのログイン
-const TOKEN = process.env.DISCORD_BOT_TOKEN || 'YOUR_BOT_TOKEN';
-client.login(TOKEN);
+app.get('/health', (req, res) => {
+    if (isDiscordReady) {
+        res.status(200).json({ status: 'healthy', discord: 'connected' });
+    } else {
+        res.status(503).json({ status: 'unhealthy', discord: 'disconnected' });
+    }
+});
+
+app.listen(port, () => {
+    console.log(`🚀 Server is running on port ${port}`);
+    console.log(`🚀 Starting Discord bot...`);
+    keepAlive(); // サーバー起動後にkeepAlive関数を実行
+});
+
+// ボットのログイン（エラーハンドリング付き）
+client.login(TOKEN)
+    .then(() => {
+        console.log('🔐 Bot login initiated');
+    })
+    .catch(error => {
+        console.error('❌ Failed to login to Discord:', error);
+        process.exit(1);
+    });
+
+// プロセス終了時の処理
+process.on('SIGINT', () => {
+    console.log('📴 Received SIGINT, shutting down gracefully');
+    client.destroy();
+    process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+    console.log('📴 Received SIGTERM, shutting down gracefully');
+    client.destroy();
+    process.exit(0);
+});
