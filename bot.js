@@ -73,6 +73,24 @@ function keepAlive() {
             console.log(`📊 Discord Status: ${isDiscordReady ? 'Connected' : 'Disconnected'}`);
             console.log(`📊 Last Activity: ${lastDiscordActivity.toISOString()}`);
             
+            // メモリ使用量チェック（新機能）
+            const memUsage = process.memoryUsage();
+            const memUsageMB = {
+                rss: Math.round(memUsage.rss / 1024 / 1024),
+                heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024),
+                heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024),
+                external: Math.round(memUsage.external / 1024 / 1024)
+            };
+            console.log(`💾 Memory Usage: RSS=${memUsageMB.rss}MB, Heap=${memUsageMB.heapUsed}/${memUsageMB.heapTotal}MB`);
+            
+            // CPU使用時間チェック
+            const cpuUsage = process.cpuUsage();
+            console.log(`⚡ CPU Usage: User=${Math.round(cpuUsage.user/1000)}ms, System=${Math.round(cpuUsage.system/1000)}ms`);
+            
+            // 稼働時間
+            const uptimeHours = Math.round(process.uptime() / 3600 * 100) / 100;
+            console.log(`⏱️ Uptime: ${uptimeHours}h`);
+            
             // 長時間非アクティブの場合は警告
             const timeSinceActivity = new Date() - lastDiscordActivity;
             if (timeSinceActivity > 30 * 60 * 1000) { // 30分
@@ -186,10 +204,23 @@ app.get('/', (req, res) => {
 });
 
 app.get('/health', (req, res) => {
+    const memUsage = process.memoryUsage();
+    const healthData = {
+        status: isDiscordReady ? 'healthy' : 'unhealthy',
+        discord: isDiscordReady ? 'connected' : 'disconnected',
+        uptime: process.uptime(),
+        memory: {
+            rss: Math.round(memUsage.rss / 1024 / 1024),
+            heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024),
+            heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024)
+        },
+        lastActivity: lastDiscordActivity
+    };
+    
     if (isDiscordReady) {
-        res.status(200).json({ status: 'healthy', discord: 'connected' });
+        res.status(200).json(healthData);
     } else {
-        res.status(503).json({ status: 'unhealthy', discord: 'disconnected' });
+        res.status(503).json(healthData);
     }
 });
 
