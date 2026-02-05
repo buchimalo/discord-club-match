@@ -16,11 +16,10 @@ const client = new Client({
     ]
 });
 
-client.on('debug', console.log);
 
 // 環境変数から設定を読み込み
 const CHANNEL_ID = process.env.DISCORD_CHANNEL_ID || 'YOUR_CHANNEL_ID';
-const REMINDER_MESSAGE = '今日はクラブマッチの日です。忘れないためのリマインドです。通知をオンにしてボットさんの声を聞きましょう。repeat after me! 囲碁と将棋はちがうぞ！欧米しばくぞ！クラブマッチですよ！';
+const REMINDER_MESSAGE = '今日はクラブマッチの日です。忘れないためのリマインドです。通知をオンにしてボットさんの声を聞きましょう。repeat after me！クラブマッチクラブマッチクラブマッチクラブマッチクラブマッチクラブマッチクラブマッチクラブマッチクラブマッチクラブマッチクラブマッチ';
 const APP_URL = process.env.RENDER_EXTERNAL_URL;
 const TOKEN = process.env.DISCORD_BOT_TOKEN || 'YOUR_BOT_TOKEN';
 
