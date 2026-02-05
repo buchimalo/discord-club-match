@@ -1,273 +1,88 @@
-const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
-const cron = require('node-cron');
+const { Client, GatewayIntentBits } = require('discord.js');
 const express = require('express');
-const https = require('https');
-
-console.log('📋 Starting application...');
-console.log('📋 Environment check:');
-console.log(`📋 DISCORD_BOT_TOKEN: ${process.env.DISCORD_BOT_TOKEN ? 'SET' : 'NOT SET'}`);
-console.log(`📋 DISCORD_CHANNEL_ID: ${process.env.DISCORD_CHANNEL_ID ? 'SET' : 'NOT SET'}`);
-console.log(`📋 PORT: ${process.env.PORT || 'NOT SET'}`);
-
-// タイムゾーンの設定
-const cronOptions = {
-  timezone: "Asia/Tokyo"
-};
 
 const client = new Client({
-    intents: [
-        GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent,
-    ]
+    intents: [GatewayIntentBits.Guilds]
 });
 
-// 環境変数から設定を読み込み
-const CHANNEL_ID = process.env.DISCORD_CHANNEL_ID || 'YOUR_CHANNEL_ID';
-const REMINDER_MESSAGE = '今日はクラブマッチの日です。忘れないためのリマインドです。通知をオンにしてボットさんの声を聞きましょう。repeat after me! 囲碁と将棋はちがうぞ！欧米しばくぞ！クラブマッチですよ！';
-const APP_URL = process.env.RENDER_EXTERNAL_URL;
-const TOKEN = process.env.DISCORD_BOT_TOKEN || 'YOUR_BOT_TOKEN';
+const TOKEN = process.env.DISCORD_BOT_TOKEN;
 
-console.log(`📋 TOKEN length: ${TOKEN.length}`);
-console.log(`📋 TOKEN starts with: ${TOKEN.substring(0, 10)}...`);
+console.log('🔍 MINIMAL TEST - Starting...');
+console.log(`🔍 Node.js version: ${process.version}`);
+console.log(`🔍 Token available: ${TOKEN ? 'YES' : 'NO'}`);
+console.log(`🔍 Token length: ${TOKEN ? TOKEN.length : 'undefined'}`);
 
-// Discord接続状況を監視
-let isDiscordReady = false;
-let lastDiscordActivity = new Date();
-
-// Discord接続イベント
 client.on('ready', () => {
-    console.log(`✅ Bot logged in as ${client.user.tag}`);
-    console.log(`✅ Connected to Discord at ${new Date().toISOString()}`);
-    console.log(`✅ Bot is ready and serving ${client.guilds.cache.size} guilds`);
-    isDiscordReady = true;
-    lastDiscordActivity = new Date();
+    console.log('✅ SUCCESS: Minimal test passed!');
+    console.log(`✅ Bot online as: ${client.user.tag}`);
+    console.log(`✅ Servers: ${client.guilds.cache.size}`);
 });
 
 client.on('error', (error) => {
-    console.error('❌ Discord client error:', error);
-    isDiscordReady = false;
+    console.error('❌ Client error:', error);
+});
+
+client.on('debug', (info) => {
+    console.log('🔧 Debug:', info);
 });
 
 client.on('warn', (warning) => {
-    console.warn('⚠️ Discord warning:', warning);
+    console.warn('⚠️ Warning:', warning);
 });
 
-client.on('disconnect', () => {
-    console.log('🔌 Discord disconnected');
-    isDiscordReady = false;
-});
+// タイムアウト設定
+const timeout = setTimeout(() => {
+    console.error('⏰ Login timeout after 30 seconds');
+}, 30000);
 
-client.on('reconnecting', () => {
-    console.log('🔄 Discord reconnecting...');
-    isDiscordReady = false;
-});
+console.log('🔐 Attempting Discord login...');
+client.login(TOKEN)
+    .then(() => {
+        console.log('🔐 Login command sent successfully');
+        clearTimeout(timeout);
+    })
+    .catch(error => {
+        console.error('❌ Login failed immediately:', error);
+        console.error('❌ Error name:', error.name);
+        console.error('❌ Error message:', error.message);
+        console.error('❌ Error code:', error.code || 'No code');
+        clearTimeout(timeout);
+    });
 
-// 10分ごとに自分自身にpingを送信 + Discord状況チェック
-function keepAlive() {
-    if (APP_URL) {
-        setInterval(() => {
-            // HTTP Pingチェック
-            https.get(APP_URL, (resp) => {
-                if (resp.statusCode === 200) {
-                    console.log('Ping successful');
-                } else {
-                    console.log(`Ping returned status: ${resp.statusCode}`);
-                }
-            }).on('error', (err) => {
-                console.log('❌ Ping failed:', err.message);
-            });
-
-            // Discord接続状況チェック
-            console.log(`📊 Discord Status: ${isDiscordReady ? 'Connected' : 'Disconnected'}`);
-            console.log(`📊 Last Activity: ${lastDiscordActivity.toISOString()}`);
-            
-            // メモリ使用量チェック（新機能）
-            const memUsage = process.memoryUsage();
-            const memUsageMB = {
-                rss: Math.round(memUsage.rss / 1024 / 1024),
-                heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024),
-                heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024),
-                external: Math.round(memUsage.external / 1024 / 1024)
-            };
-            console.log(`💾 Memory Usage: RSS=${memUsageMB.rss}MB, Heap=${memUsageMB.heapUsed}/${memUsageMB.heapTotal}MB`);
-            
-            // CPU使用時間チェック
-            const cpuUsage = process.cpuUsage();
-            console.log(`⚡ CPU Usage: User=${Math.round(cpuUsage.user/1000)}ms, System=${Math.round(cpuUsage.system/1000)}ms`);
-            
-            // 稼働時間
-            const uptimeHours = Math.round(process.uptime() / 3600 * 100) / 100;
-            console.log(`⏱️ Uptime: ${uptimeHours}h`);
-            
-        }, 5 * 60 * 1000); // 5分ごと
-    }
-}
-
-// 火曜日・木曜日・土曜日の11時に実行
-cron.schedule('0 11 * * 2,4,6', async () => {
-    console.log('🔔 Attempting to send 11:00 reminder...');
-    try {
-        if (!isDiscordReady) {
-            console.error('❌ Discord not ready, skipping 11:00 reminder');
-            return;
-        }
-        
-        const channel = await client.channels.fetch(CHANNEL_ID);
-        if (channel) {
-            const embed = new EmbedBuilder()
-                .setColor('#FF0000')
-                .setTitle('♠️♥️ クラブマッチ通知 - 11:00')
-                .setDescription(REMINDER_MESSAGE)
-                .setTimestamp();
-            
-            await channel.send({ embeds: [embed] });
-            console.log('✅ 11:00の通知を送信しました');
-            lastDiscordActivity = new Date();
-        } else {
-            console.error('❌ Channel not found for 11:00 reminder');
-        }
-    } catch (error) {
-        console.error('❌ Error sending 11:00 reminder:', error);
-    }
-}, cronOptions);
-
-// 火曜日・木曜日・土曜日の21時に実行
-cron.schedule('0 21 * * 2,4,6', async () => {
-    console.log('🔔 Attempting to send 21:00 reminder...');
-    try {
-        if (!isDiscordReady) {
-            console.error('❌ Discord not ready, skipping 21:00 reminder');
-            return;
-        }
-        
-        const channel = await client.channels.fetch(CHANNEL_ID);
-        if (channel) {
-            const embed = new EmbedBuilder()
-                .setColor('#FF0000')
-                .setTitle('♠️♥️ クラブマッチ通知 - 21:00')
-                .setDescription(REMINDER_MESSAGE)
-                .setTimestamp();
-            
-            await channel.send({ embeds: [embed] });
-            console.log('✅ 21:00の通知を送信しました');
-            lastDiscordActivity = new Date();
-        } else {
-            console.error('❌ Channel not found for 21:00 reminder');
-        }
-    } catch (error) {
-        console.error('❌ Error sending 21:00 reminder:', error);
-    }
-}, cronOptions);
-
-// ボットのステータス確認用コマンド
-client.on('messageCreate', async message => {
-    lastDiscordActivity = new Date();
-    
-    if (message.content === '!status') {
-        const uptime = process.uptime();
-        const uptimeFormatted = `${Math.floor(uptime / 3600)}h ${Math.floor((uptime % 3600) / 60)}m`;
-        
-        const embed = new EmbedBuilder()
-            .setColor('#00FF00')
-            .setTitle('🤖 リマインドボットの状態')
-            .setDescription('正常に動作しています')
-            .addFields(
-                { name: '設定された時間', value: '火・木・土 11:00, 21:00' },
-                { name: 'Discord接続状況', value: isDiscordReady ? '✅ 接続中' : '❌ 切断中' },
-                { name: '稼働時間', value: uptimeFormatted },
-                { name: '最後のアクティビティ', value: lastDiscordActivity.toISOString() },
-                { name: 'リマインドメッセージ', value: REMINDER_MESSAGE }
-            )
-            .setTimestamp();
-        
-        try {
-            await message.reply({ embeds: [embed] });
-            console.log('📊 Status command executed successfully');
-        } catch (error) {
-            console.error('❌ Error replying to status command:', error);
-        }
-    }
-});
-
-// Express設定
-const port = process.env.PORT || 10000;
+// Express server for Render
 const app = express();
+const port = process.env.PORT || 10000;
 
 app.get('/', (req, res) => {
-    const statusInfo = {
-        status: 'running',
-        discordReady: isDiscordReady,
-        uptime: process.uptime(),
-        lastActivity: lastDiscordActivity,
-        timestamp: new Date().toISOString()
-    };
-    
-    res.json(statusInfo);
-    console.log('📊 Health check requested');
+    res.json({ 
+        status: 'testing',
+        timestamp: new Date().toISOString(),
+        ready: client.readyAt ? true : false
+    });
 });
 
 app.get('/health', (req, res) => {
-    const memUsage = process.memoryUsage();
-    const healthData = {
-        status: isDiscordReady ? 'healthy' : 'unhealthy',
-        discord: isDiscordReady ? 'connected' : 'disconnected',
-        uptime: process.uptime(),
-        memory: {
-            rss: Math.round(memUsage.rss / 1024 / 1024),
-            heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024),
-            heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024)
-        },
-        lastActivity: lastDiscordActivity
-    };
-    
-    res.status(200).json(healthData);
+    res.json({ 
+        status: client.readyAt ? 'online' : 'offline',
+        uptime: process.uptime()
+    });
 });
 
-// Discord接続を最初に実行
-console.log('🔐 Attempting Discord login...');
-
-// タイムアウト設定
-const loginTimeout = setTimeout(() => {
-    console.error('⏰ Discord login timeout after 30 seconds');
-}, 30000);
-
-client.login(TOKEN)
-    .then(() => {
-        console.log('🔐 Bot login process started successfully');
-        clearTimeout(loginTimeout);
-    })
-    .catch(error => {
-        console.error('❌ Failed to login to Discord:', error);
-        console.error('❌ Error name:', error.name);
-        console.error('❌ Error message:', error.message);
-        console.error('❌ Error code:', error.code);
-        console.error('❌ Error stack:', error.stack);
-        clearTimeout(loginTimeout);
-    });
-
-// サーバー起動
 app.listen(port, () => {
-    console.log(`🚀 Server is running on port ${port}`);
-    
-    // keepAliveを5秒後に開始（Discord接続を待つため）
-    setTimeout(() => {
-        console.log('🔄 Starting keepAlive...');
-        keepAlive();
-    }, 5000);
+    console.log(`🚀 Server running on port ${port}`);
 });
 
 // プロセス終了時の処理
 process.on('SIGINT', () => {
-    console.log('📴 Received SIGINT, shutting down gracefully');
+    console.log('📴 Received SIGINT');
     client.destroy();
     process.exit(0);
 });
 
 process.on('SIGTERM', () => {
-    console.log('📴 Received SIGTERM, shutting down gracefully');
+    console.log('📴 Received SIGTERM');
     client.destroy();
     process.exit(0);
 });
 
-console.log('📋 Application setup complete, waiting for Discord connection...');
+console.log('📋 Minimal test setup complete');
