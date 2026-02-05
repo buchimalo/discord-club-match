@@ -226,14 +226,24 @@ app.get('/health', (req, res) => {
 
 // Discord接続を最初に実行
 console.log('🔐 Attempting Discord login...');
+
+// タイムアウト設定
+const loginTimeout = setTimeout(() => {
+    console.error('⏰ Discord login timeout after 30 seconds');
+}, 30000);
+
 client.login(TOKEN)
     .then(() => {
         console.log('🔐 Bot login process started successfully');
+        clearTimeout(loginTimeout);
     })
     .catch(error => {
         console.error('❌ Failed to login to Discord:', error);
-        console.error('❌ Error details:', error.message);
+        console.error('❌ Error name:', error.name);
+        console.error('❌ Error message:', error.message);
+        console.error('❌ Error code:', error.code);
         console.error('❌ Error stack:', error.stack);
+        clearTimeout(loginTimeout);
     });
 
 // サーバー起動
