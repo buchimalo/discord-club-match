@@ -1,7 +1,7 @@
 {
   "name": "discord-club-match",
   "version": "1.0.0",
-  "description": "Discord reminder bot for club matches",
+  "description": "Discord reminder bot for club matches",  
   "main": "bot.js",
   "scripts": {
     "start": "node bot.js"
