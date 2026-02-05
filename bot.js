@@ -3,6 +3,12 @@ const cron = require('node-cron');
 const express = require('express');
 const https = require('https');
 
+console.log('📋 Starting application...');
+console.log('📋 Environment check:');
+console.log(`📋 DISCORD_BOT_TOKEN: ${process.env.DISCORD_BOT_TOKEN ? 'SET' : 'NOT SET'}`);
+console.log(`📋 DISCORD_CHANNEL_ID: ${process.env.DISCORD_CHANNEL_ID ? 'SET' : 'NOT SET'}`);
+console.log(`📋 PORT: ${process.env.PORT || 'NOT SET'}`);
+
 // タイムゾーンの設定
 const cronOptions = {
   timezone: "Asia/Tokyo"
@@ -21,6 +27,9 @@ const CHANNEL_ID = process.env.DISCORD_CHANNEL_ID || 'YOUR_CHANNEL_ID';
 const REMINDER_MESSAGE = '今日はクラブマッチの日です。忘れないためのリマインドです。通知をオンにしてボットさんの声を聞きましょう。repeat after me! 囲碁と将棋はちがうぞ！欧米しばくぞ！クラブマッチですよ！';
 const APP_URL = process.env.RENDER_EXTERNAL_URL;
 const TOKEN = process.env.DISCORD_BOT_TOKEN || 'YOUR_BOT_TOKEN';
+
+console.log(`📋 TOKEN length: ${TOKEN.length}`);
+console.log(`📋 TOKEN starts with: ${TOKEN.substring(0, 10)}...`);
 
 // Discord接続状況を監視
 let isDiscordReady = false;
@@ -91,11 +100,6 @@ function keepAlive() {
             const uptimeHours = Math.round(process.uptime() / 3600 * 100) / 100;
             console.log(`⏱️ Uptime: ${uptimeHours}h`);
             
-            // 長時間非アクティブの場合は警告
-            const timeSinceActivity = new Date() - lastDiscordActivity;
-            if (timeSinceActivity > 30 * 60 * 1000) { // 30分
-                console.warn('⚠️ Discord has been inactive for more than 30 minutes');
-            }
         }, 5 * 60 * 1000); // 5分ごと
     }
 }
@@ -158,7 +162,7 @@ cron.schedule('0 21 * * 2,4,6', async () => {
 
 // ボットのステータス確認用コマンド
 client.on('messageCreate', async message => {
-    lastDiscordActivity = new Date(); // メッセージ受信時にアクティビティ更新
+    lastDiscordActivity = new Date();
     
     if (message.content === '!status') {
         const uptime = process.uptime();
@@ -217,29 +221,30 @@ app.get('/health', (req, res) => {
         lastActivity: lastDiscordActivity
     };
     
-    if (isDiscordReady) {
-        res.status(200).json(healthData);
-    } else {
-        res.status(503).json(healthData);
-    }
+    res.status(200).json(healthData);
 });
 
-// サーバー起動とDiscord接続
+// Discord接続を最初に実行
+console.log('🔐 Attempting Discord login...');
+client.login(TOKEN)
+    .then(() => {
+        console.log('🔐 Bot login process started successfully');
+    })
+    .catch(error => {
+        console.error('❌ Failed to login to Discord:', error);
+        console.error('❌ Error details:', error.message);
+        console.error('❌ Error stack:', error.stack);
+    });
+
+// サーバー起動
 app.listen(port, () => {
     console.log(`🚀 Server is running on port ${port}`);
-    console.log(`🚀 Starting Discord bot...`);
     
-    // Discord接続をサーバー起動後に実行
-    client.login(TOKEN)
-        .then(() => {
-            console.log('🔐 Bot login initiated');
-            keepAlive(); // 接続成功後にkeepAlive開始
-        })
-        .catch(error => {
-            console.error('❌ Failed to login to Discord:', error);
-            console.error('❌ Error details:', error.message);
-            // プロセスを終了させずに継続（デバッグ用）
-        });
+    // keepAliveを5秒後に開始（Discord接続を待つため）
+    setTimeout(() => {
+        console.log('🔄 Starting keepAlive...');
+        keepAlive();
+    }, 5000);
 });
 
 // プロセス終了時の処理
@@ -254,3 +259,5 @@ process.on('SIGTERM', () => {
     client.destroy();
     process.exit(0);
 });
+
+console.log('📋 Application setup complete, waiting for Discord connection...');
