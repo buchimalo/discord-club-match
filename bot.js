@@ -224,21 +224,23 @@ app.get('/health', (req, res) => {
     }
 });
 
+// サーバー起動とDiscord接続
 app.listen(port, () => {
     console.log(`🚀 Server is running on port ${port}`);
     console.log(`🚀 Starting Discord bot...`);
-    keepAlive(); // サーバー起動後にkeepAlive関数を実行
+    
+    // Discord接続をサーバー起動後に実行
+    client.login(TOKEN)
+        .then(() => {
+            console.log('🔐 Bot login initiated');
+            keepAlive(); // 接続成功後にkeepAlive開始
+        })
+        .catch(error => {
+            console.error('❌ Failed to login to Discord:', error);
+            console.error('❌ Error details:', error.message);
+            // プロセスを終了させずに継続（デバッグ用）
+        });
 });
-
-// ボットのログイン（エラーハンドリング付き）
-client.login(TOKEN)
-    .then(() => {
-        console.log('🔐 Bot login initiated');
-    })
-    .catch(error => {
-        console.error('❌ Failed to login to Discord:', error);
-        process.exit(1);
-    });
 
 // プロセス終了時の処理
 process.on('SIGINT', () => {
