@@ -160,7 +160,9 @@ cron.schedule('0 21 * * 2,4,6', async () => {
 // ボットのステータス確認用コマンド
 client.on('messageCreate', async message => {
     lastDiscordActivity = new Date(); // メッセージ受信時にアクティビティ更新
-    
+
+    if (message.channel.id !== CHANNEL_ID) return;
+  
     if (message.content === '!status') {
         const uptime = process.uptime();
         const uptimeFormatted = `${Math.floor(uptime / 3600)}h ${Math.floor((uptime % 3600) / 60)}m`;
